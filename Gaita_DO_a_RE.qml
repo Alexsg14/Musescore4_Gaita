@@ -182,6 +182,33 @@ MuseScore {
         return [changed, skipped]
     }
 
+    function setOrUpdateSystemText(cursor, newText) {
+        if (!cursor.segment)
+            return
+
+        var found = false
+        var annotations = cursor.segment.annotations
+        if (annotations) {
+            for (var i = 0; i < annotations.length; ++i) {
+                var ann = annotations[i]
+                if (ann && (ann.type === Element.STAFF_TEXT || ann.type === Element.SYSTEM_TEXT)) {
+                    var txt = ann.text ? ann.text.trim() : ""
+                    if (txt === "Sistema DO" || txt === "Sistema RE") {
+                        ann.text = newText
+                        found = true
+                        break
+                    }
+                }
+            }
+        }
+
+        if (!found) {
+            var labelText = newElement(Element.STAFF_TEXT)
+            labelText.text = newText
+            cursor.add(labelText)
+        }
+    }
+
     function runConversion() {
         var cursor = curScore.newCursor()
         var startStaff
@@ -210,6 +237,16 @@ MuseScore {
         }
 
         curScore.startCmd()
+
+        var textCursor = curScore.newCursor()
+        if (fullScore)
+            textCursor.rewind(Cursor.SCORE_START)
+        else
+            textCursor.rewind(Cursor.SELECTION_START)
+
+        textCursor.staffIdx = startStaff
+        textCursor.voice = 0
+        setOrUpdateSystemText(textCursor, "Sistema RE")
 
         for (var staff = startStaff; staff <= endStaff; ++staff) {
             for (var voice = 0; voice < 4; ++voice) {
